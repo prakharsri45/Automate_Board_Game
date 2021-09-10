@@ -1,0 +1,217 @@
+# place holder for the parts you are to do; may delete after you finish all
+def TODO(hint = ''): return False
+
+import random
+import matplotlib.pyplot as plt
+location = {}
+victory = []
+
+
+def calc(location, victory, n):
+  locate = {}
+  k = 1
+  for x in range(n,0,-1):
+    for y in range(1,n+1):
+      locate[(y,k)] = (location[(x,y)])
+    k = k+1
+
+  for i in range(1,n+1):
+    for j in range(1,n+1):
+      if locate[(i,j)] == 'o':
+        plt.plot((2*i-1)/2,(2*j-1)/2, color='brown', marker='o', markersize=40)
+      if locate[(i,j)] == 'x':
+        plt.plot((2*i-1)/2,(2*j-1)/2, color='purple', marker='x', markersize=40)
+      if locate[(i,j)] == '-':
+        plt.plot((2*i-1)/2,(2*j-1)/2, '-')
+
+  if victory:
+      if victory[0] == 'row':
+        display = "Congratulations, player " + str(victory[2]) + " won: row " + str(victory[1])
+        plt.xlabel(display, fontsize=14)
+        victory[1] = n - victory[1] + 1
+        x = [(2*i-1)/2 for i in range(1,n+1)]
+        y = [(2*victory[1]-1)/2 for i in range(1,n+1)]
+        plt.plot(x,y, color='blue', linewidth=10)
+
+      if victory[0] == 'col':
+        x = [(2*victory[1]-1)/2 for i in range(1,n+1)]
+        y = [(2*i-1)/2 for i in range(1,n+1)]
+        display = "Congratulations, player " + str(victory[2]) + " won: column " + str(victory[1])
+        plt.xlabel(display, fontsize=14)
+        plt.plot(x,y, color='blue', linewidth=10)
+
+      if victory[0] == 'ldig':
+        x = [(2*i-1)/2 for i in range(1,n+1)]
+        y = [(2*i-1)/2 for i in range(n,0,-1)]
+        display = "Congratulations, player " + str(victory[2]) + " won: left diagonal"
+        plt.xlabel(display, fontsize=14)
+        plt.plot(x,y, color='blue', linewidth=10)
+
+      if victory[0] == 'rdig':
+        x = [(2*i-1)/2 for i in range(1,n+1)]
+        y = [(2*i-1)/2 for i in range(1,n+1)]
+        display = "Congratulations, player " + str(victory[2]) + " won: right diagonal"
+        plt.xlabel(display, fontsize=14)
+        plt.plot(x,y, color='blue', linewidth=10)
+  else:
+      plt.xlabel("It's a draw for us", fontsize=14)
+
+
+
+class BoardAI:
+  def __init__(self, n):
+    """create an empty n-by-n board, with indices starting at 1
+    """
+    self.n = n
+    self.board = {(i,j):0 for i in range(1,n+1) for j in range(1,n+1)}
+
+  def move(self, id):
+    """find next position for player id, update board, and return the position
+    """
+    pos = random.choice([(i,j) for (i,j) in self.board if self.board[i,j]==0])
+    self.update(pos, id)
+    print('---- move by player', id, ' : ', pos)
+    return pos
+
+  def update(self, pos, id):
+    """update board to reflect that position pos is taken by player id
+    """
+    self.board[pos] = id
+
+  def win(self, id, verbose=True):
+    """print result if player id has won, and return whether id has won
+    """
+    global victory
+    victory = []
+    n = self.n
+    for i in range(1,n+1):
+      if each(j in range(1,n+1), has = self.board[(i, j)] == id):
+        if verbose:
+          print('==== player', id, 'won: row', i);
+          victory = ['row', i, id]
+        return True
+
+    for i in range(1,n+1):
+      if each(j in range(1,n+1), has = self.board[(j, i)] == id):
+        if verbose:
+          print('==== player', id, 'won: column', i);
+          victory = ['col', i, id]
+        return True
+
+    if each(i in range(1,n+1), has = self.board[(i, i)] == id):
+      if verbose:
+        print('==== player', id, 'won: left diagonal');
+        victory = ['ldig', 3, id]
+      return True
+
+    if each(i in range(1,n+1), has = self.board[(i, n-i+1)] == id):
+      if verbose:
+        print('==== player', id, 'won: right diagonal');
+        victory = ['rdig', 3, id]
+      return True
+
+    return False
+
+  def is_full(self):
+    for i in self.board.values():
+      if i == 0: return False
+    return True
+
+  def finished(self):
+    """return if some player has won, or if the board is full so it is a draw
+    """
+    if self.win(1):
+      return True
+    elif self.win(2):
+      return True
+    elif self.is_full():
+      return True
+    else:
+      return False
+
+  def show(self, id):
+    """show the board of player id; id is not needed for the show (line 4);
+       it is used for printing with board atomically (line 2)
+    """
+    global location
+    board = self.board;  Is = {i for (i,_) in board}
+    print('board of ', id, ':',  board)
+    marks = {0: '_', 1: 'o', 2: 'x'}
+    location = {(i,j):marks[board[i,j]] for j in Is for i in Is}
+
+    calc(location, victory, self.n)
+    axix = range(self.n+1)
+    plt.xticks(axix,axix)
+    plt.yticks(axix,axix)
+
+    plt.grid(color = 'black', linestyle = '-', linewidth = 2)
+    plt.show(block=False)
+    plt.pause(0.5)
+    plt.close()
+
+    print('\n'.join(' '.join(marks[board[i,j]] for j in Is) for i in Is))
+
+
+class Player (process):
+  def setup(board, id, ps):        # take board size, own id, other processes
+    board.show(id)
+
+  def run():
+    max_moves = board.n*board.n
+    move_id = 0
+
+    while move_id < max_moves:
+      if id == 1:
+        await( some(received(('ack', m2)), has= m2 == move_id) or move_id == 0
+                or received(('finish', )))
+      else:
+        await( some(received(('ack', m2)), has= m2 > move_id)  or received(('finish', )))
+      if received(('finish', )): break
+
+      move_id += 1
+      pos = board.move(id)
+      board.update(pos, id)
+
+      send(('release', pos, id, move_id), to = ps)
+
+    send(('done', self), to= ps)
+    await( received(('done', ps)) )
+
+  def receive(msg = ('release', pos, id2, move_id)): # receive next position from player id2
+    board.update(pos, id2)
+    board.show(id)
+
+    # handling winning cases
+    # verbose parameter needed to check if the player won on the last move.
+    # i.e. board can be full and at the same time one of the player could have won
+    if board.finished():
+      send(('finish', ), to= self)
+      send(('finish', ), to= ps)
+      calc(location, victory, board.n)
+      axix = range(board.n+1)
+      plt.xticks(axix,axix)
+      plt.yticks(axix,axix)
+
+      plt.grid(color = 'black', linestyle = '-', linewidth = 2)
+      if board.win(id2, verbose=False):
+        print("player ", id, " : Congratulations to ", id2)
+        plt.show()
+      else:
+        print("player ", id, " : It's a draw for us")
+        plt.show()
+    else:
+      send(('ack', move_id), to = self)
+
+def main():
+  n = 3                            # size n for n-by-n board
+  board = BoardAI(n)
+
+  # creating two players
+  num_players = 2
+  players = new(Player, num = num_players)
+
+  # setting up the processes
+  for (pid, p) in enumerate(players): setup(p, (board, pid+1, list(players-{p})[0]))
+
+  # starting the players
+  start(players)
