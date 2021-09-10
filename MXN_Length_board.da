@@ -1,0 +1,151 @@
+# place holder for the parts you are to do; may delete after you finish all
+def TODO(hint = ''): return False
+
+import random
+import sys
+
+class BoardAI:
+  def __init__(self, num_rows, num_cols, win_moves):
+    """create an empty m-by-n board, with indices starting at 1
+    """
+    self.num_rows = num_rows
+    self.num_cols = num_cols
+    self.win_moves = win_moves
+    self.max_moves = num_rows * num_cols / 2
+    self.board = {(i,j):0 for i in range(1,num_rows+1) for j in range(1,num_cols+1)}
+
+    if min(num_rows, num_cols) < win_moves:
+      print("ERROR: Number of consecutive moves can't be less than min(num_rows, num_cols)")
+      sys.exit(1)
+
+  def move(self, id):
+    """find next position for player id, update board, and return the position
+    """
+    pos = random.choice([(i,j) for (i,j) in self.board if self.board[i,j]==0])
+    self.update(pos, id)
+    print('---- move by player', id, ' : ', pos)
+    return pos
+
+  def update(self, pos, id):
+    """update board to reflect that position pos is taken by player id
+    """
+    self.board[pos] = id
+
+  def win(self, id, verbose=True):
+    """print result if player id has won, and return whether id has won
+    """
+    num_rows = self.num_rows
+    num_cols = self.num_cols
+    win_moves = self.win_moves
+
+    for i in range(1, num_rows+1):
+      for j in range(1, num_cols-win_moves+2):
+        if sum([1 for k in range(win_moves) if self.board[(i, j+k)] == id]) == win_moves:
+          if verbose:
+            print('==== player', id, 'won row-wise: row', i, ' col', j);
+          return True
+
+    for j in range(1, num_cols+1):
+      for i in range(1, num_rows-win_moves+2):
+        if sum([1 for k in range(win_moves) if self.board[(i+k, j)] == id]) == win_moves:
+          if verbose:
+            print('==== player', id, 'won col-wise: row', i, ' col', j);
+          return True
+
+    for i in range(1, num_rows-win_moves+2):
+      for j in range(1, num_cols-win_moves+2):
+        if sum([1 for k in range(win_moves) if self.board[(i+k, j+k)] == id]) == win_moves:
+          if verbose:
+            print('==== player', id, 'won left-diagonal: row', i, ' col', j);
+          return True
+
+    for i in range(1, num_rows-win_moves+2):
+      for j in range(1, num_cols-win_moves+2):
+        if sum([1 for k in range(win_moves) if self.board[(i+k, win_moves+j-k-1)] == id]) == win_moves:
+          if verbose:
+            print('==== player', id, 'won right-diagonal: row', i, ' col', j+win_moves-1);
+          return True
+    return False
+
+  def is_full(self):
+    for i in self.board.values():
+      if i == 0: return False
+    return True
+
+  def finished(self):
+    """return if some player has won, or if the board is full so it is a draw
+    """
+    if self.win(1):
+      return True
+    elif self.win(2):
+      return True
+    elif self.is_full():
+      return True
+    else:
+      return False
+
+  def show(self, id):
+    """show the board of player id; id is not needed for the show (line 4);
+       it is used for printing with board atomically (line 2)
+    """
+    board = self.board;
+    rows = range(1, self.num_rows + 1)
+    cols = range(1, self.num_cols + 1)
+    print('board of ', id, ':',  board)
+    marks = {0: '_', 1: 'o', 2: 'x'}
+    print('\n'.join(' '.join(marks[board[i,j]] for j in cols) for i in rows))
+
+class Player (process):
+  def setup(board, id, ps):        # take board size, own id, other processes
+    board.show(id)
+
+  def run():
+    move_id = 0
+
+    while move_id < board.max_moves:
+      if id == 1:
+        await( some(received(('ack', m2)), has= m2 == move_id) or move_id == 0
+                or received(('finish', )))
+      else:
+        await( some(received(('ack', m2)), has= m2 > move_id)  or received(('finish', )))
+      if received(('finish', )): break
+
+      move_id += 1
+      pos = board.move(id)
+      board.update(pos, id)
+
+      send(('release', pos, id, move_id), to = ps)
+
+    send(('done', self), to= ps)
+    await( received(('done', ps)) )
+
+  def receive(msg = ('release', pos, id2, move_id)): # receive next position from player id2
+    board.update(pos, id2)
+    board.show(id)
+
+    # handling winning cases
+    # verbose parameter needed to check if the player won on the last move.
+    # i.e. board can be full and at the same time one of the player could have won
+    if board.finished():
+      send(('finish', ), to= self)
+      send(('finish', ), to= ps)
+      if board.win(id2, verbose=False):
+        print("player ", id, " : Congratulations to ", id2)
+      else:
+        print("player ", id, " : It's a draw for us")
+    else:
+      send(('ack', move_id), to = self)
+
+def main():
+  m, n, k = (4, 5, 3)                            # size for m-by-n board with k consecutive for wins
+  board = BoardAI(m, n, k)
+
+  # creating two players
+  num_players = 2
+  players = new(Player, num = num_players)
+
+  # setting up the processes
+  for (pid, p) in enumerate(players): setup(p, (board, pid+1, list(players-{p})[0]))
+
+  # starting the players
+  start(players)
